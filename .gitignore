@@ -40,3 +40,7 @@ Thumbs.db
 
 # dotCover
 *.dotCover
+nuget/Xam.Plugins.Notifier.2.3.0.nupkg
+nuget/nuget.exe
+nuget/Plugin.LocalNotifications.nuspec
+nuget/Plugin.LocalNotifications.nuspec

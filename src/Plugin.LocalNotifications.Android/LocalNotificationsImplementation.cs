@@ -27,6 +27,11 @@ namespace Plugin.LocalNotifications
 
 		private string CreateNotificationChannel(string channelId)
 		{
+			if(Build.VERSION.SdkInt < BuildVersionCodes.O)
+			{
+				return "";
+			}
+
 			if (string.IsNullOrEmpty(channelId))
 			{
 				return "";
@@ -74,10 +79,13 @@ namespace Plugin.LocalNotifications
 		/// <param name="id">Id of the notification</param>
 		public void Show(string title, string body, int id = 0)
 		{
-			var builder = new Notification.Builder(Application.Context, CreateNotificationChannel($"{_packageName}.urgent"));
+#pragma warning disable CS0618 // Type or member is obsolete
+			Notification.Builder builder = new Notification.Builder(Application.Context);
+#pragma warning restore CS0618 // Type or member is obsolete
 			builder.SetContentTitle(title);
 			builder.SetContentText(body);
 			builder.SetAutoCancel(true);
+			builder.SetVisibility(NotificationVisibility.Public);
 
 			if (NotificationIconId != 0)
 			{
@@ -88,11 +96,13 @@ namespace Plugin.LocalNotifications
 				builder.SetSmallIcon(Resource.Drawable.plugin_lc_smallicon);
 			}
 
-			//if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
-			//{
-			//	var channelId = $"{_packageName}.general";
-			//	builder.SetChannelId(CreateNotificationChannel(channelId));
-			//}
+			if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+			{
+				var channelId = $"{_packageName}.general";
+				var channel = new NotificationChannel(channelId, "General", NotificationImportance.Default);
+				_manager.CreateNotificationChannel(channel);
+				builder.SetChannelId(channelId);
+			}
 
 			var resultIntent = GetLauncherActivity();
 			resultIntent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
@@ -142,15 +152,15 @@ namespace Plugin.LocalNotifications
 
 				// Bundle up parameters
 				var extras = new PersistableBundle();
-				extras.PutString(ScheduledAlarmHandler.LocalNotificationKey, serializedNotification);
+				extras.PutString(ScheduledAlarmHandler.LocalNotificationKey, serializedNotification); 
 				extras.PutInt(ScheduledJobHandler.LocalNotificationIconId, NotificationIconId);
-
 				var triggerTime = NotifyTimeInMilliseconds(localNotification.NotifyTime) - NotifyTimeInMilliseconds(DateTime.Now);
+
 				JobInfo.Builder builder = new JobInfo.Builder(id, component)
 													 .SetMinimumLatency(triggerTime)   // Fire at TriggerTime
 													 .SetOverrideDeadline(triggerTime + 5000) // Or at least 5 Seconds Later
 													 .SetExtras(extras)
-													 .SetPersisted(CheckBootPermission()); //Job will be recreated after Reboot
+													 .SetPersisted(CheckBootPermission()); //Job will be recreated after Reboot if Permissions are granted
 				JobInfo jobInfo = builder.Build();
 
 				JobScheduler jobScheduler = GetJobScheduler();
@@ -162,6 +172,7 @@ namespace Plugin.LocalNotifications
 				else
 				{
 					// The job wasn´t scheduled. So just use the old implementation?
+					triggerTime = NotifyTimeInMilliseconds(localNotification.NotifyTime);
 					intent.PutExtra(ScheduledAlarmHandler.LocalNotificationKey, serializedNotification);
 					var pendingIntent = PendingIntent.GetBroadcast(Application.Context, 0, intent, PendingIntentFlags.CancelCurrent);
 					var alarmManager = GetAlarmManager();
@@ -171,9 +182,8 @@ namespace Plugin.LocalNotifications
 			else
 			{
 				intent.PutExtra(ScheduledAlarmHandler.LocalNotificationKey, serializedNotification);
-				var triggerTime = NotifyTimeInMilliseconds(localNotification.NotifyTime);
 				var pendingIntent = PendingIntent.GetBroadcast(Application.Context, 0, intent, PendingIntentFlags.CancelCurrent);
-				var alarmManager = GetAlarmManager();
+				var alarmManager = GetAlarmManager(); var triggerTime = NotifyTimeInMilliseconds(localNotification.NotifyTime);
 				alarmManager.Set(AlarmType.RtcWakeup, triggerTime, pendingIntent);
 			}
 		}
