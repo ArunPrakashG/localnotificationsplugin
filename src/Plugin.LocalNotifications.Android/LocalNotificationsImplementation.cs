@@ -44,6 +44,7 @@ namespace Plugin.LocalNotifications
 
 			var channel = new NotificationChannel(channelId, "General", NotificationImportance.High);
 			channel.EnableVibration(true);
+			channel.EnableLights(true);
 			channel.LockscreenVisibility = NotificationVisibility.Public;
 			channel.SetBypassDnd(false);
 			channel.SetShowBadge(true);
@@ -85,6 +86,7 @@ namespace Plugin.LocalNotifications
 			builder.SetContentTitle(title);
 			builder.SetContentText(body);
 			builder.SetAutoCancel(true);
+			builder.SetColorized(true);
 			builder.SetVisibility(NotificationVisibility.Public);
 
 			if (NotificationIconId != 0)
@@ -99,7 +101,13 @@ namespace Plugin.LocalNotifications
 			if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
 			{
 				var channelId = $"{_packageName}.general";
-				var channel = new NotificationChannel(channelId, "General", NotificationImportance.Default);
+				var channel = new NotificationChannel(channelId, "General", NotificationImportance.High); 
+				channel.EnableVibration(true);
+				channel.EnableLights(true);
+				channel.LockscreenVisibility = NotificationVisibility.Public;
+				channel.SetBypassDnd(false);
+				channel.SetShowBadge(true);
+				channel.SetVibrationPattern(new long[] { 0, 250, 250, 250 });
 				_manager.CreateNotificationChannel(channel);
 				builder.SetChannelId(channelId);
 			}
